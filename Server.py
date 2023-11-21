@@ -5,12 +5,13 @@ import datetime
 # Data structures to store user information and messages
 users = []
 messages = []
-groups = {"Group1": [], "Group2": [], "Group3": [], "Group4": [], "Group5": []}
+groups = {"Public": [], "Group1": [], "Group2": [], "Group3": [], "Group4": [], "Group5": []}
 
 # Function to handle client connections
 def handle_client(client_socket, username):
     try:
-        welcome_message = f"Welcome, {username}!\nType 'help' for a list of commands."
+        join_group(username, "Public")                                              #auto join to public group - Trysten
+        welcome_message = f"{username}, type 'help' for a list of commands.\n"
         client_socket.send(welcome_message.encode('utf-8'))
 
         while True:
@@ -41,9 +42,16 @@ def process_client_data(client_socket, username, data):
     elif data.startswith('join'):
         _, group = data.split(' ', 1)
         response = join_group(username, group)
-        client_socket.send(response.encode('utf-8'))
+        if type(response) is type(None):                                    #reponse was NoneType if successfully joined. Cause error reponse. SO I added this check before response - trysten
+                                                                            #could do alt implimentation where we return something in the join_group function for easier reading
+            client_socket.send("You have joined!".encode('utf-8'))
+        else:
+            client_socket.send(response.encode('utf-8'))
     elif data.startswith('leave'):
-        leave_group(username)
+        _, group = data.split(' ', 1)              #now have a group element that contains a desired group to leave - Trysten
+        #print(group)                                
+        response = leave_group(username, group)    #added client socket so we could output a message if trying to leave public in the leave_group function - Trysten
+        client_socket.send(response.encode('utf-8'))
     elif data.startswith('help'):
         help_message = "\nAvailable commands:\njoin <group>\npost <group> <message>\nlist <group>\nget <message_id>\nleave\n\n"
         client_socket.send(help_message.encode('utf-8'))
@@ -79,8 +87,8 @@ def broadcast_message(sender, group, message_data):
                 print(f"Error broadcasting message to user: {e}")
 
 # Function to add a new user to the server
-def add_user(username):
-    users.append(username)
+def add_user(username, client_socket):
+    users.append([username, client_socket])
 
 # Function to remove a user from the server
 def remove_user(username):
@@ -112,10 +120,16 @@ def get_message(client_socket, message_id):
         client_socket.send("Invalid message ID. Must be an integer.".encode('utf-8'))
 
 # Function to leave a group
-def leave_group(username):
-    for group in groups.values():
-        if username in group:
-            group.remove(username)
+def leave_group(username, group):           #added client socket and group -trysten
+    if group != "Public":                   #if the request group to leave is not "public", continue
+       for g in groups.values():            #loop through all group values trying to match the desired group to leave. Current implimentation does access public group, so must check for public again.
+            if username in g:               #if username is in the group (g), proceed
+                if g != "Public":           #now the group is checked again to make sure it isn't the public group
+                    if g == group:          #checking if (g) is the desired group to leave
+                        g.remove(username)  #if not public, remove
+                        return f"You have left {group}!"
+    else:
+        return f"You cannot leave the Public bulletin!"
 
 # Main server loop
 def main():
@@ -127,12 +141,12 @@ def main():
     try:
         while True:
             client_socket, addr = server.accept()
-            print(f"Accepted connection from {addr}")
+            print(f"Accepted connection from {addr}\n")
 
             username = client_socket.recv(1024).decode('utf-8')
-            add_user(username)
+            add_user(username, client_socket)
 
-            client_socket.send('Welcome to the public message board!'.encode('utf-8'))
+            client_socket.send('Welcome to the public message board!\n'.encode('utf-8'))
 
             # Start a thread to handle the client
             client_handler = threading.Thread(target=handle_client, args=(client_socket, username))
