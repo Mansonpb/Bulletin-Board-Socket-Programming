@@ -12,6 +12,7 @@ groups = {"Public": [], "Group1": [], "Group2": [], "Group3": [], "Group4": [], 
 def handle_client(client_socket, username):
     try:
         join_group(username, "Public")                                              #auto join to public group - Trysten
+        broadcast_message(client_socket,"Server", "Public", f"{username} joined the public bulletin.")
         welcome_message = f"{username}, type 'help' for a list of commands.\n"
         client_socket.send(welcome_message.encode('utf-8'))
 
@@ -46,7 +47,6 @@ def process_client_data(client_socket, username, data):
         leave_group(client_socket,username)
     elif data.startswith('join'):
         _, group = data.split(' ', 1)
-
         response = join_group(client_socket,username, group)
         client_socket.send(response.encode('utf-8'))
     elif data.startswith('help'):
@@ -96,8 +96,7 @@ def broadcast_message(client_socket,sender, group, message_data):
 # Function to add a new user to the server and place them in the public group
 def add_user(client_socket,username):
     users.append((username,client_socket))
-    groups["Public"].append(username)
-    broadcast_message(client_socket,"Server", "Public", f"{username} joined the group.")
+    
 
 # Function to join a user to a group
 def join_group(client_socket,username, group):
