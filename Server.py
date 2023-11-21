@@ -5,12 +5,14 @@ import datetime
 # Data structures to store user information and messages
 users = []
 messages = []
-groups = {"Public": [],"Group1": [], "Group2": [], "Group3": [], "Group4": [], "Group5": []}
+groups = {"Public": [], "Group1": [], "Group2": [], "Group3": [], "Group4": [], "Group5": []}
+
 
 # Function to handle client connections
 def handle_client(client_socket, username):
     try:
-        welcome_message = f"Welcome, {username}!\nType 'help' for a list of commands."
+        join_group(username, "Public")                                              #auto join to public group - Trysten
+        welcome_message = f"{username}, type 'help' for a list of commands.\n"
         client_socket.send(welcome_message.encode('utf-8'))
 
         while True:
@@ -44,6 +46,7 @@ def process_client_data(client_socket, username, data):
         leave_group(client_socket,username)
     elif data.startswith('join'):
         _, group = data.split(' ', 1)
+
         response = join_group(client_socket,username, group)
         client_socket.send(response.encode('utf-8'))
     elif data.startswith('help'):
@@ -137,10 +140,16 @@ def get_message(client_socket, message_id):
         client_socket.send("Invalid message ID. Must be an integer.".encode('utf-8'))
 
 # Function to leave a group
-def leave_group(username):
-    for group in groups.values():
-        if username in group:
-            group.remove(username)
+def leave_group(username, group):           #added client socket and group -trysten
+    if group != "Public":                   #if the request group to leave is not "public", continue
+       for g in groups.values():            #loop through all group values trying to match the desired group to leave. Current implimentation does access public group, so must check for public again.
+            if username in g:               #if username is in the group (g), proceed
+                if g != "Public":           #now the group is checked again to make sure it isn't the public group
+                    if g == group:          #checking if (g) is the desired group to leave
+                        g.remove(username)  #if not public, remove
+                        return f"You have left {group}!"
+    else:
+        return f"You cannot leave the Public bulletin!"
 
 # Main server loop
 def main():
@@ -152,12 +161,13 @@ def main():
     try:
         while True:
             client_socket, addr = server.accept()
-            print(f"Accepted connection from {addr}")
+            print(f"Accepted connection from {addr}\n")
 
             username = client_socket.recv(1024).decode('utf-8')
+
             add_user(client_socket,username)
 
-            client_socket.send('Welcome to the public message board!'.encode('utf-8'))
+            client_socket.send('Welcome to the public message board!\n'.encode('utf-8'))
 
             # Start a thread to handle the client
             client_handler = threading.Thread(target=handle_client, args=(client_socket, username))
