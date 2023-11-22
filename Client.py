@@ -10,7 +10,12 @@ def receive_messages(client_socket):
 
 def main():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(('localhost', 9999))
+
+    # Add a 'connect' command to specify the server address and port
+    server_address = input("Enter the server address: ")
+    server_port = int(input("Enter the server port: "))
+
+    client_socket.connect((server_address, server_port))
 
     username = input("Enter your username: ")
     client_socket.send(username.encode('utf-8'))
