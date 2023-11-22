@@ -37,10 +37,10 @@ def process_client_data(client_socket, username, data):
     if data.startswith('post'):
         _, group, message = data.split(' ', 2)
         post_message(client_socket, username, group, message)
-    elif data.startswith('list'):
+    elif data.startswith('users'):
         group = data.split(' ', 1)[1].strip()
         display_user_list(client_socket, group)
-    elif data.startswith('get'):
+    elif data.startswith('getmessage'):
         message_id = data.split(' ', 1)[1].strip()
         get_message(client_socket, message_id)
     elif data.startswith('leave'):
@@ -52,8 +52,20 @@ def process_client_data(client_socket, username, data):
         _, group = data.split(' ', 1)
         response = join_group(client_socket,username, group)
         client_socket.send(response.encode('utf-8'))
+    elif data.startswith('grouplist'):
+        available_groups = ", ".join(groups.keys())
+        client_socket.send(f"Available groups: {available_groups}\n".encode('utf-8'))
     elif data.startswith('help'):
-        help_message = "Available commands:\npost <group> <message>\nlist <group>\nget <message_id>\nleave\njoin <group>\n"
+        help_message = (
+            "\nAvailable commands:\n"
+            "post <group> <message> - Post a message to the specified group.\n"
+            "users <group> - Display the list of users in the specified group.\n"
+            "getmessage <message_id> - Get the content of the message with the specified ID.\n"
+            "leave <group> - Leave the specified group.\n"
+            "join <group> - Join the specified group.\n"
+            "grouplist - Display the list of available groups.\n"
+            "help - Gives a list of commands\n"
+        )
         client_socket.send(help_message.encode('utf-8'))
     else:
         client_socket.send("Invalid command. Type 'help' for a list of commands.".encode('utf-8'))
@@ -102,7 +114,7 @@ def join_group(client_socket,username, group):
         broadcast_message(client_socket,username, group, f"{username} joined the group.")
         return f"You joined {group}."
     else:
-        return f"Invalid group. Use 'list <group>' to see available groups."
+        return f"Invalid group. Use command 'grouplist' to see available groups." 
 
 # Function to remove a user from the server
 def remove_user(username):
@@ -121,7 +133,7 @@ def display_user_list(client_socket, group):
         user_list = ', '.join(groups[group])
         client_socket.send(f"Users in {group}: {user_list}".encode('utf-8'))
     else:
-        client_socket.send("Invalid group. Use 'list <group>' to see available groups.".encode('utf-8'))
+        client_socket.send("Invalid group. Use command 'grouplist' to see available groups.".encode('utf-8'))
 
 # Function to get the content of a message
 def get_message(client_socket, message_id):
