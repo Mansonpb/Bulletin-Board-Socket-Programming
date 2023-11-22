@@ -11,8 +11,8 @@ groups = {"Public": [], "Group1": [], "Group2": [], "Group3": [], "Group4": [], 
 # Function to handle client connections
 def handle_client(client_socket, username):
     try:
-        join_group(username, "Public")                                              #auto join to public group - Trysten
-        broadcast_message(client_socket,"Server", "Public", f"{username} joined the public bulletin.")
+        join_group(client_socket, username, "Public")                                              #auto join to public group - Trysten
+        broadcast_message(client_socket,"Server", "Public", f"{username} joined the public bulletin.\n")
         welcome_message = f"{username}, type 'help' for a list of commands.\n"
         client_socket.send(welcome_message.encode('utf-8'))
 
@@ -35,8 +35,8 @@ def handle_client(client_socket, username):
 # Function to process client data
 def process_client_data(client_socket, username, data):
     if data.startswith('post'):
-        _, message = data.split(' ', 1)
-        post_message(client_socket, username, message)
+        _, group, message = data.split(' ', 2)
+        post_message(client_socket, username, group, message)
     elif data.startswith('list'):
         group = data.split(' ', 1)[1].strip()
         display_user_list(client_socket, group)
@@ -44,27 +44,32 @@ def process_client_data(client_socket, username, data):
         message_id = data.split(' ', 1)[1].strip()
         get_message(client_socket, message_id)
     elif data.startswith('leave'):
-        leave_group(client_socket,username)
+        group = data.split(' ', 1)[1].strip()              #now have a group element that contains a desired group to leave - Trysten
+        #print(group)                                
+        response = leave_group(username, group)    #added client socket so we could output a message if trying to leave public in the leave_group function - Trysten
+        client_socket.send(response.encode('utf-8'))
     elif data.startswith('join'):
         _, group = data.split(' ', 1)
         response = join_group(client_socket,username, group)
         client_socket.send(response.encode('utf-8'))
     elif data.startswith('help'):
-        help_message = "Available commands:\npost <message>\nlist <group>\nget <message_id>\nleave\njoin <group>\n"
+        help_message = "Available commands:\npost <group> <message>\nlist <group>\nget <message_id>\nleave\njoin <group>\n"
         client_socket.send(help_message.encode('utf-8'))
     else:
         client_socket.send("Invalid command. Type 'help' for a list of commands.".encode('utf-8'))
 
 # Function to post a message to the user's current group
-def post_message(client_socket,sender, message):
+def post_message(client_socket,sender,group, message):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    message_data = f"{len(messages) + 1}, {sender}, {timestamp}, {message}"
+    
+    if sender not in groups[group]:
+        client_socket.send(f"You are not a member of {group}. Use 'join {group}' to join the group.\n".encode('utf-8'))
+        return
+
+    message_data = f"{len(messages) + 1}, {sender}, {timestamp}, <{group}> {message}"
     messages.append(message_data)
 
-    user_group = find_user_group(sender)
-    
-
-    broadcast_message(client_socket,sender, user_group, message_data)
+    broadcast_message(client_socket,sender, group, message_data)
 
 # Function to find the group of a user
 def find_user_group(username):
@@ -73,25 +78,17 @@ def find_user_group(username):
             return group
     return None
 
-# Function to leave a specific group
-def leave_group(client_socket,username):
-    group = find_user_group(username)
-    if group:
-        groups[group].remove(username)
-        broadcast_message(client_socket,"Server", group, f"{username} left the group.")
-        return f"You left {group}."
-    else:
-        return "You are not in any group."
 
 # Function to broadcast messages to all clients in a group
 def broadcast_message(client_socket,sender, group, message_data):
     print(f"Broadcasting message from {sender} in group {group}: {message_data}")
     if group in groups:
         for username, client_socket in users:
-            try:
-                client_socket.send(f"{message_data}\n".encode('utf-8'))
-            except Exception as e:
-                print(f"Error broadcasting message to user {username}: {e}")
+            if username != sender and username in groups[group]:  #If we want the sender to see the post Broad delete (username != sender) and it will send to everyone in the group including sender
+                try:
+                    client_socket.send(f"{message_data}".encode('utf-8'))
+                except Exception as e:
+                    print(f"Error broadcasting message to user {username}: {e}")
 
 # Function to add a new user to the server and place them in the public group
 def add_user(client_socket,username):
@@ -102,7 +99,7 @@ def add_user(client_socket,username):
 def join_group(client_socket,username, group):
     if group in groups:
         groups[group].append(username)
-        broadcast_message(client_socket,"Server", group, f"{username} joined the group.")
+        broadcast_message(client_socket,username, group, f"{username} joined the group.")
         return f"You joined {group}."
     else:
         return f"Invalid group. Use 'list <group>' to see available groups."
