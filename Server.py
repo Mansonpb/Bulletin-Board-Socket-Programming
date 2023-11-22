@@ -1,6 +1,7 @@
 import socket
 import threading
 import datetime
+import sys # for the exit function
 
 # Data structures to store user information and messages
 users = []
@@ -31,6 +32,18 @@ def handle_client(client_socket, username):
     finally:
         remove_user(username)
         client_socket.close()
+
+#function to disconnect from the server and exit the client program
+def exit(client_socket, username):
+    try:
+        client_socket.send("exit".encode('utf-8')) #notifies the server that the client is exiting
+    except Exception as e:
+        print(f"Error sending exit signal to server for client {username}: {e}")
+    finally:
+        remove_user(username)
+        client_socket.close()
+        print(f"Disconnected from the server.  Exiting {username}'s client program.")
+        sys.exit(0) # exits the program
 
 # Function to process client data
 def process_client_data(client_socket, username, data):
@@ -65,8 +78,12 @@ def process_client_data(client_socket, username, data):
             "join <group> - Join the specified group.\n"
             "grouplist - Display the list of available groups.\n"
             "help - Gives a list of commands\n"
+            "exit - Disconnects from the server and exits client program\n"
         )
         client_socket.send(help_message.encode('utf-8'))
+    elif data.startswith('exit'):
+        print(f"Disconnecting from Server and exiting client program!")
+        exit(client_socket, username)
     else:
         client_socket.send("Invalid command. Type 'help' for a list of commands.".encode('utf-8'))
 
@@ -104,7 +121,21 @@ def broadcast_message(client_socket,sender, group, message_data):
 
 # Function to add a new user to the server and place them in the public group
 def add_user(client_socket,username):
+    while username_exists(username):
+        client_socket.send(f"Username '{username}' is already in use. Please choose a different username: ".encode('utf-8'))
+        username = client_socket.recv(1024).decode('utf-8').strip()
+        
+    # add the new username to the users
+    print(username)
     users.append((username,client_socket))
+    return username
+
+# Function to check if a username already exists
+def username_exists(username):
+    for user_info in users:
+        if user_info[0].lower() == username.lower():
+            return True
+    return False 
     
 
 # Function to join a user to a group
@@ -173,7 +204,7 @@ def main():
 
             username = client_socket.recv(1024).decode('utf-8')
 
-            add_user(client_socket,username)
+            username = add_user(client_socket,username)
 
             client_socket.send('Welcome to the public message board!\n'.encode('utf-8'))
 

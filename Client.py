@@ -1,12 +1,21 @@
 import socket
 import threading
+import sys #for exit function
 
 def receive_messages(client_socket):
-    while True:
-        message = client_socket.recv(1024).decode('utf-8')
-        if not message:
-            break
-        print(message)
+    try:
+        while True:
+            message = client_socket.recv(1024).decode('utf-8')
+            if message.lower() == 'exit':
+                print("Received exit signal!  Exiting client program.\n")
+                sys.exit(0) #kills program!
+                #result = 1/0
+            if not message:
+                break
+            print(message)
+    except Exception as e:
+        print(f"Error receiving messages from the server: {e}")
+        sys.exit(1)
 
 def main():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
