@@ -231,7 +231,15 @@ def get_message(client_socket, message_id):
         client_socket.send("Invalid message ID. Must be an integer.".encode('utf-8'))
 
 # Function to leave a group
-def leave_group(username, group):           
+def leave_group(username, group):  
+    if group not in groups:
+        return f"Invalid group '{group}'. Use 'grouplist' to see available groups.\n"
+    
+    # Check if the user is a member of the group
+    if username not in groups[group]:
+        return f"You are not a member of {group}. Use 'join {group}' to join the group.\n"
+        
+
     if group != "Public":                   #if the request group to leave is not "public", continue
                                             #loop through all group values trying to match the desired group to leave. Current implimentation does access public group, so must check for public again.
        for g in groups:                     #g will hold group names
