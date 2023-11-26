@@ -143,6 +143,7 @@ def join_group(client_socket,username, group):
     if group in groups:
         groups[group].append(username)
         broadcast_message(client_socket,username, group, f"{username} joined {group}.")
+        display_user_list(client_socket, group)             #use our created display user list function to print the current users in the joined group. (ONLY DISPLAYED FOR USER JOINING)
         return f"You joined {group}."
     else:
         return f"Invalid group. Use command 'grouplist' to see available groups." 
@@ -206,7 +207,7 @@ def main():
 
             username = add_user(client_socket,username)
 
-            client_socket.send('Welcome to the public message board!\n'.encode('utf-8'))
+            #client_socket.send('Welcome to the public message board!\n'.encode('utf-8'))                #when joining public this is redunant message 1/2. Should we have just the broadcast message? I think so --Trysten
 
             # Start a thread to handle the client
             client_handler = threading.Thread(target=handle_client, args=(client_socket, username))
