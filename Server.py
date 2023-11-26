@@ -142,7 +142,7 @@ def username_exists(username):
 def join_group(client_socket,username, group):
     if group in groups:
         groups[group].append(username)
-        broadcast_message(client_socket,username, group, f"{username} joined the group.")
+        broadcast_message(client_socket,username, group, f"{username} joined {group}.")
         return f"You joined {group}."
     else:
         return f"Invalid group. Use command 'grouplist' to see available groups." 
