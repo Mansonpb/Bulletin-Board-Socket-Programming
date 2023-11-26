@@ -16,6 +16,7 @@ def handle_client(client_socket, username):
         broadcast_message(client_socket,"Server", "Public", f"{username} joined the public bulletin.\n")
         welcome_message = f"{username}, type 'help' for a list of commands.\n"
         client_socket.send(welcome_message.encode('utf-8'))
+        #use GroupList here --trysten
 
         while True:
             data = client_socket.recv(1024).decode('utf-8')
@@ -49,7 +50,11 @@ def exit(client_socket, username):
 def process_client_data(client_socket, username, data):
     if data.startswith('post'):
         _, group, message = data.split(' ', 2)
-        post_message(client_socket, username, group, message)
+        if group in groups:
+            print('here')
+            post_message(client_socket, username, group, message)
+        else:
+            client_socket.send(f"You are trying to send a mesasge into a group that does not exist!\n".encode('utf-8'))         #check for group before attempting to use post command --Trysten
     elif data.startswith('users'):
         group = data.split(' ', 1)[1].strip()
         display_user_list(client_socket, group)
@@ -180,17 +185,18 @@ def get_message(client_socket, message_id):
         client_socket.send("Invalid message ID. Must be an integer.".encode('utf-8'))
 
 # Function to leave a group
-def leave_group(username, group):           #added client socket and group -trysten
+def leave_group(username, group):           
     if group != "Public":                   #if the request group to leave is not "public", continue
-       for g in groups.values():            #loop through all group values trying to match the desired group to leave. Current implimentation does access public group, so must check for public again.
-            if username in g:               #if username is in the group (g), proceed
-                if g != "Public":           #now the group is checked again to make sure it isn't the public group
-                    if g == group:          #checking if (g) is the desired group to leave
-                        g.remove(username)  #if not public, remove
+                                            #loop through all group values trying to match the desired group to leave. Current implimentation does access public group, so must check for public again.
+       for g in groups:                     #g will hold group names
+            if g != "Public":               #the loop will start on Public, so we have to make sure to disregard that group in the search. if not Public, proceed.           
+                if username in groups[g]:               #if username is in the group (g)'s list, proceed
+                            
+                    if g == group:                  #checking if (g) is the desired group to leave
+                        groups[g].remove(username)  #if not public, remove
                         return f"You have left {group}!"
     else:
-        return f"You cannot leave the Public bulletin!"
-
+       return f"You cannot leave the Public bulletin!"
 # Main server loop
 def main():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
