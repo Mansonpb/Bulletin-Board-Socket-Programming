@@ -8,6 +8,8 @@ users = []
 messages = []
 groups = {"Public": [], "Group1": [], "Group2": [], "Group3": [], "Group4": [], "Group5": []}
 
+# Data structure to store last two messages for each group
+last_two_messages = {"Public": ["", ""], "Group1": ["", ""], "Group2": ["", ""], "Group3": ["", ""], "Group4": ["", ""], "Group5": ["", ""]}
 
 # Function to handle client connections
 def handle_client(client_socket, username):
@@ -16,7 +18,6 @@ def handle_client(client_socket, username):
         broadcast_message(client_socket,"Server", "Public", f"{username} joined the public bulletin.\n")
         welcome_message = f"{username}, type 'help' for a list of commands.\n"
         client_socket.send(welcome_message.encode('utf-8'))
-        #use GroupList here --trysten
 
         while True:
             data = client_socket.recv(1024).decode('utf-8')
@@ -49,25 +50,49 @@ def exit(client_socket, username):
 # Function to process client data
 def process_client_data(client_socket, username, data):
     if data.startswith('post'):
-        _, group, message = data.split(' ', 2)
-        if group in groups:
-            print('here')
-            post_message(client_socket, username, group, message)
-        else:
-            client_socket.send(f"You are trying to send a mesasge into a group that does not exist!\n".encode('utf-8'))         #check for group before attempting to use post command --Trysten
+        _, *rest = data.split(' ', 2)
+
+        if len(rest) < 2:
+            client_socket.send("Invalid 'post' command. Use 'post <group> <message>'.\n".encode('utf-8'))
+            return
+        group, message = rest
+        post_message(client_socket, username, group, message)
     elif data.startswith('users'):
-        group = data.split(' ', 1)[1].strip()
+        _, *rest = data.split(' ', 1)
+
+        if len(rest) < 1:
+            client_socket.send("Invalid 'users' command. Use 'users <group>'.\n".encode('utf-8'))
+            return
+
+        group = rest[0].strip()
         display_user_list(client_socket, group)
     elif data.startswith('getmessage'):
-        message_id = data.split(' ', 1)[1].strip()
+        _, *rest = data.split(' ', 1)
+
+        if len(rest) < 1:
+            client_socket.send("Invalid 'getmessage' command. Use 'getmessage <message_id>'.\n".encode('utf-8'))
+            return
+
+        message_id = rest[0].strip()
         get_message(client_socket, message_id)
-    elif data.startswith('leave'):
-        group = data.split(' ', 1)[1].strip()              #now have a group element that contains a desired group to leave - Trysten
-        #print(group)                                
+    elif data.startswith('leave'):                                      
+        _, *rest = data.split(' ', 1)
+
+        if len(rest) < 1:
+            client_socket.send("Invalid 'leave' command. Use 'leave <group>'.\n".encode('utf-8'))
+            return
+
+        group = rest[0].strip()
         response = leave_group(username, group)    #added client socket so we could output a message if trying to leave public in the leave_group function - Trysten
         client_socket.send(response.encode('utf-8'))
     elif data.startswith('join'):
-        _, group = data.split(' ', 1)
+        _, *rest = data.split(' ', 1)
+
+        if len(rest) < 1:
+            client_socket.send("Invalid 'join' command. Use 'join <group>'.\n".encode('utf-8'))
+            return
+
+        group = rest[0].strip()
         response = join_group(client_socket,username, group)
         client_socket.send(response.encode('utf-8'))
     elif data.startswith('grouplist'):
@@ -96,12 +121,27 @@ def process_client_data(client_socket, username, data):
 def post_message(client_socket,sender,group, message):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
+    # Check if the group exists
+    if group not in groups:
+        client_socket.send(f"Invalid group '{group}'. Use 'grouplist' to see available groups.\n".encode('utf-8'))
+        return
+
+    # Check if the user is a member of the group
     if sender not in groups[group]:
         client_socket.send(f"You are not a member of {group}. Use 'join {group}' to join the group.\n".encode('utf-8'))
+        return
+    
+    # Check if the message is empty
+    if not message.strip():
+        client_socket.send("Message cannot be empty. Please try again.\n".encode('utf-8'))
         return
 
     message_data = f"{len(messages) + 1}, {sender}, {timestamp}, <{group}> {message}"
     messages.append(message_data)
+
+
+    # Update last two messages for the group
+    last_two_messages[group] = [last_two_messages[group][1], message_data]
 
     broadcast_message(client_socket,sender, group, message_data)
 
@@ -149,6 +189,12 @@ def join_group(client_socket,username, group):
         groups[group].append(username)
         broadcast_message(client_socket,username, group, f"{username} joined {group}.")
         display_user_list(client_socket, group)             #use our created display user list function to print the current users in the joined group. (ONLY DISPLAYED FOR USER JOINING)
+        
+        # Send the last two messages to the client
+        for msg in last_two_messages[group]:
+            if msg:
+                client_socket.send(f"{msg}\n".encode('utf-8'))
+        
         return f"You joined {group}."
     else:
         return f"Invalid group. Use command 'grouplist' to see available groups." 
@@ -168,7 +214,7 @@ def remove_user(username):
 def display_user_list(client_socket, group):
     if group in groups:
         user_list = ', '.join(groups[group])
-        client_socket.send(f"Users in {group}: {user_list}".encode('utf-8'))
+        client_socket.send(f"Users in {group}: {user_list}\n".encode('utf-8'))
     else:
         client_socket.send("Invalid group. Use command 'grouplist' to see available groups.".encode('utf-8'))
 
@@ -197,6 +243,7 @@ def leave_group(username, group):
                         return f"You have left {group}!"
     else:
        return f"You cannot leave the Public bulletin!"
+
 # Main server loop
 def main():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
