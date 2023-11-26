@@ -8,6 +8,8 @@ users = []
 messages = []
 groups = {"Public": [], "Group1": [], "Group2": [], "Group3": [], "Group4": [], "Group5": []}
 
+# Data structure to store last two messages for each group
+last_two_messages = {"Public": ["", ""], "Group1": ["", ""], "Group2": ["", ""], "Group3": ["", ""], "Group4": ["", ""], "Group5": ["", ""]}
 
 # Function to handle client connections
 def handle_client(client_socket, username):
@@ -98,6 +100,10 @@ def post_message(client_socket,sender,group, message):
     message_data = f"{len(messages) + 1}, {sender}, {timestamp}, <{group}> {message}"
     messages.append(message_data)
 
+
+    # Update last two messages for the group
+    last_two_messages[group] = [last_two_messages[group][1], message_data]
+
     broadcast_message(client_socket,sender, group, message_data)
 
 # Function to find the group of a user
@@ -144,6 +150,12 @@ def join_group(client_socket,username, group):
         groups[group].append(username)
         broadcast_message(client_socket,username, group, f"{username} joined {group}.")
         display_user_list(client_socket, group)             #use our created display user list function to print the current users in the joined group. (ONLY DISPLAYED FOR USER JOINING)
+        
+        # Send the last two messages to the client
+        for msg in last_two_messages[group]:
+            if msg:
+                client_socket.send(f"{msg}\n".encode('utf-8'))
+        
         return f"You joined {group}."
     else:
         return f"Invalid group. Use command 'grouplist' to see available groups." 
@@ -163,7 +175,7 @@ def remove_user(username):
 def display_user_list(client_socket, group):
     if group in groups:
         user_list = ', '.join(groups[group])
-        client_socket.send(f"Users in {group}: {user_list}".encode('utf-8'))
+        client_socket.send(f"Users in {group}: {user_list}\n".encode('utf-8'))
     else:
         client_socket.send("Invalid group. Use command 'grouplist' to see available groups.".encode('utf-8'))
 
