@@ -16,6 +16,7 @@ def handle_client(client_socket, username):
     try:
         join_group(client_socket, username, "Public")                                              #auto join to public group - Trysten
         broadcast_message(client_socket,"Server", "Public", f"{username} joined the public bulletin.\n")
+        print_groups(client_socket)
         welcome_message = f"{username}, type 'help' for a list of commands.\n"
         client_socket.send(welcome_message.encode('utf-8'))
 
@@ -96,8 +97,7 @@ def process_client_data(client_socket, username, data):
         response = join_group(client_socket,username, group)
         client_socket.send(response.encode('utf-8'))
     elif data.startswith('grouplist'):
-        available_groups = ", ".join(groups.keys())
-        client_socket.send(f"Available groups: {available_groups}\n".encode('utf-8'))
+        print_groups(client_socket)
     elif data.startswith('help'):
         help_message = (
             "\nAvailable commands:\n"
@@ -152,6 +152,9 @@ def find_user_group(username):
             return group
     return None
 
+def print_groups(client_socket):
+    available_groups = ", ".join(groups.keys())
+    client_socket.send(f"Available groups: {available_groups}\n".encode('utf-8'))
 
 # Function to broadcast messages to all clients in a group
 def broadcast_message(client_socket,sender, group, message_data):
