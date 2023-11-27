@@ -51,6 +51,14 @@ def exit(client_socket, username):
 # Function to process client data
 def process_client_data(client_socket, username, data):
     if data.startswith('post'):
+        _, *rest = data.split(' ', 1)
+
+        if len(rest) < 1:
+            client_socket.send("Invalid 'users' command. Use 'users <group>'.\n".encode('utf-8'))
+            return
+        message = rest[0].strip()
+        post_message(client_socket, username, "Public", message)
+    elif data.startswith('grouppost'):
         _, *rest = data.split(' ', 2)
 
         if len(rest) < 2:
@@ -161,7 +169,7 @@ def broadcast_message(client_socket,sender, group, message_data):
     print(f"Broadcasting message from {sender} in group {group}: {message_data}")
     if group in groups:
         for username, client_socket in users:
-            if username != sender and username in groups[group]:  #If we want the sender to see the post Broad delete (username != sender) and it will send to everyone in the group including sender
+            if username in groups[group]:  #If we want the sender to see the post Broad delete (username != sender) and it will send to everyone in the group including sender
                 try:
                     client_socket.send(f"{message_data}".encode('utf-8'))
                 except Exception as e:
@@ -188,9 +196,17 @@ def username_exists(username):
 
 # Function to join a user to a group
 def join_group(client_socket,username, group):
+    message_data = f"{username} joined {group}."
     if group in groups:
         groups[group].append(username)
-        broadcast_message(client_socket,username, group, f"{username} joined {group}.")
+        if group in groups:
+            for sender, client_socket in users:
+                if sender != username and sender in groups[group]:  #If we want the sender to see the post Broad delete (username != sender) and it will send to everyone in the group including sender
+                    try:
+                        client_socket.send(f"{message_data}".encode('utf-8'))
+                    except Exception as e:
+                        print(f"Error broadcasting message to user {username}: {e}")
+        #broadcast_message(client_socket,username, group, f"{username} joined {group}.")
         display_user_list(client_socket, group)             #use our created display user list function to print the current users in the joined group. (ONLY DISPLAYED FOR USER JOINING)
         
         # Send the last two messages to the client
