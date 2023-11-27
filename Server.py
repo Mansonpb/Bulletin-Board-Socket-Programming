@@ -126,16 +126,16 @@ def process_client_data(client_socket, username, data):
     elif data.startswith('help'):
         help_message = (
             "\nAvailable commands:\n"
-            "post <group> <message> - Post a message to the public board.\n"
-            "users <group> - Display the list of users in the public.\n"
+            "post <message> - Post a message to the public board.\n"
+            "users - Display the list of users in the public.\n"
             "getmessage <message_id> - Get the content of the message with the specified ID.\n"
-            "leave <group> - Leave the specified group.\n" # didnt change!!!!!!!!!
-            "join <group> - Join the specified group.\n"  # didnt change!!!!!!!!!
+            "leave - Leave the public chat.\n" 
+            "join - Join the public chat.\n" 
             "help - Gives a list of commands\n"
             "exit - Disconnects from the server and exits client program\n"
             "grouplist - Display the list of available groups.\n"
             "groupjoin <group> - Join the specified group.\n"
-            "grouppost - Join the specified group.\n"
+            "grouppost <group> - Post a message to a specified group.\n"
             "groupusers <group> - Display the list of users in the specified group.\n"
             "groupleave <group> - Leave the specified group.\n"
             "groupmessage <group> <message_id> - Get the content of the message with the specified ID and group.\n"
@@ -155,13 +155,10 @@ def post_message(client_socket,sender,group_ID, message):
 
     # Check if the group exists
     if group_ID not in groups:
-        print(f"hello 1")
         try:
             if 1 <= int(group_ID) <= 5:
-                print(f"hello 2")
                 group = "Group" + group_ID
-                print(group)
-                print(f"hello 3")
+                # print(group)
                 # group = groups[str(group_ID)]
                 # Check if the user is a member of the group
                 if sender not in groups[group]:
@@ -245,16 +242,23 @@ def username_exists(username):
 
 # Function to join a user to a group
 def join_group(client_socket,username, group):
-    message_data = f"{username} joined {group}."
-    
+    if group not in groups:
+        try:
+            if 1 <= int(group) <= 5:
+                        group = "Group" + group
+        except ValueError:
+            return f"Invalid group. Use command 'grouplist' to see available groups." 
+        
+    message_data = f"{username} joined {group}."    
+    client_socket_test = client_socket
     if group in groups:
         if username not in groups[group]:
             groups[group].append(username)
             if group in groups:
-                for sender, client_socket in users:
+                for sender, client_socket_test in users:
                     if sender != username and sender in groups[group]:  #If we want the sender to see the post Broad delete (username != sender) and it will send to everyone in the group including sender
                         try:
-                            client_socket.send(f"{message_data}".encode('utf-8'))
+                            client_socket_test.send(f"{message_data}".encode('utf-8'))
                         except Exception as e:
                             print(f"Error broadcasting message to user {username}: {e}")
             #broadcast_message(client_socket,username, group, f"{username} joined {group}.")
@@ -320,7 +324,11 @@ def get_message(client_socket, message_id):
 # Function to leave a group
 def leave_group(username, group):  
     if group not in groups:
-        return f"Invalid group '{group}'. Use 'grouplist' to see available groups.\n"
+        try:
+            if 1 <= int(group) <= 5:
+                        group = "Group" + group
+        except ValueError:
+            return f"Invalid group. Use command 'grouplist' to see available groups." 
     
     # Check if the user is a member of the group
     if username not in groups[group]:
