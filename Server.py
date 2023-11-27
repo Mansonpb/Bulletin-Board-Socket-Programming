@@ -14,8 +14,9 @@ last_two_messages = {"Public": ["", ""], "Group1": ["", ""], "Group2": ["", ""],
 # Function to handle client connections
 def handle_client(client_socket, username):
     try:
-        join_group(client_socket, username, "Public")                                              #auto join to public group - Trysten
-        broadcast_message(client_socket,"Server", "Public", f"{username} joined the public bulletin.\n")
+        #join_group(client_socket, username, "Public")                                              #auto join to public group - Trysten
+        #broadcast_message(client_socket,"Server", "Public", f"{username} joined the public bulletin.\n")
+        client_socket.send(f"Welcome to the server {username}!\n".encode('utf-8'))
         print_groups(client_socket)
         welcome_message = f"{username}, type 'help' for a list of commands.\n"
         client_socket.send(welcome_message.encode('utf-8'))
@@ -154,6 +155,9 @@ def post_message(client_socket,sender,group, message):
     if group not in groups:
         client_socket.send(f"Invalid group '{group}'. Use 'grouplist' to see available groups.\n".encode('utf-8'))
         return
+    # if 1 <= int(group) <= 5:      --trysten
+    #     group_id = int(group) + 1
+    #USE THIS IF THE GROUP is NOT in the groups list
 
     # Check if the user is a member of the group
     if sender not in groups[group]:
@@ -218,24 +222,28 @@ def username_exists(username):
 # Function to join a user to a group
 def join_group(client_socket,username, group):
     message_data = f"{username} joined {group}."
+    
     if group in groups:
-        groups[group].append(username)
-        if group in groups:
-            for sender, client_socket in users:
-                if sender != username and sender in groups[group]:  #If we want the sender to see the post Broad delete (username != sender) and it will send to everyone in the group including sender
-                    try:
-                        client_socket.send(f"{message_data}".encode('utf-8'))
-                    except Exception as e:
-                        print(f"Error broadcasting message to user {username}: {e}")
-        #broadcast_message(client_socket,username, group, f"{username} joined {group}.")
-        display_user_list(client_socket, group)             #use our created display user list function to print the current users in the joined group. (ONLY DISPLAYED FOR USER JOINING)
-        
-        # Send the last two messages to the client
-        for msg in last_two_messages[group]:
-            if msg:
-                client_socket.send(f"{msg}\n".encode('utf-8'))
-        
-        return f"You joined {group}."
+        if username not in groups[group]:
+            groups[group].append(username)
+            if group in groups:
+                for sender, client_socket in users:
+                    if sender != username and sender in groups[group]:  #If we want the sender to see the post Broad delete (username != sender) and it will send to everyone in the group including sender
+                        try:
+                            client_socket.send(f"{message_data}".encode('utf-8'))
+                        except Exception as e:
+                            print(f"Error broadcasting message to user {username}: {e}")
+            #broadcast_message(client_socket,username, group, f"{username} joined {group}.")
+            display_user_list(client_socket, group)             #use our created display user list function to print the current users in the joined group. (ONLY DISPLAYED FOR USER JOINING)
+            
+            # Send the last two messages to the client
+            for msg in last_two_messages[group]:
+                if msg:
+                    client_socket.send(f"{msg}\n".encode('utf-8'))
+            
+            return f"You joined {group}."
+        else:
+            return f"You are already in {group}\n"
     else:
         return f"Invalid group. Use command 'grouplist' to see available groups." 
 
@@ -277,20 +285,14 @@ def leave_group(username, group):
     
     # Check if the user is a member of the group
     if username not in groups[group]:
-        return f"You are not a member of {group}. Use 'join {group}' to join the group.\n"
+        if group == "Public":
+            return f"You are not a member of {group}. Simply type 'join' join the public discussion.\n"
+        else:
+            return f"You are not a member of {group}. Use 'groupjoin {group}' to join the group.\n"
         
+    groups[group].remove(username)
+    return f"You have left {group}!"
 
-    if group != "Public":                   #if the request group to leave is not "public", continue
-                                            #loop through all group values trying to match the desired group to leave. Current implimentation does access public group, so must check for public again.
-       for g in groups:                     #g will hold group names
-            if g != "Public":               #the loop will start on Public, so we have to make sure to disregard that group in the search. if not Public, proceed.           
-                if username in groups[g]:               #if username is in the group (g)'s list, proceed
-                            
-                    if g == group:                  #checking if (g) is the desired group to leave
-                        groups[g].remove(username)  #if not public, remove
-                        return f"You have left {group}!"
-    else:
-       return f"You cannot leave the Public bulletin!"
 
 # Main server loop
 def main():
