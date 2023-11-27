@@ -66,7 +66,7 @@ def process_client_data(client_socket, username, data):
             return
         group, message = rest
         post_message(client_socket, username, group, message)
-    elif data.startswith('users'):
+    elif data.startswith('groupusers'):
         _, *rest = data.split(' ', 1)
 
         if len(rest) < 1:
@@ -75,6 +75,16 @@ def process_client_data(client_socket, username, data):
 
         group = rest[0].strip()
         display_user_list(client_socket, group)
+    elif data.startswith('users'):
+        display_user_list(client_socket, "Public")
+    elif data.startswith('groupmessage'):
+        _, *rest = data.split(' ', 2)
+
+        if len(rest) < 2:
+            client_socket.send("Invalid 'post' command. Use 'post <group> <message>'.\n".encode('utf-8'))
+            return
+        group, message_id = rest
+        get_message(client_socket, message_id)  
     elif data.startswith('getmessage'):
         _, *rest = data.split(' ', 1)
 
@@ -84,7 +94,10 @@ def process_client_data(client_socket, username, data):
 
         message_id = rest[0].strip()
         get_message(client_socket, message_id)
-    elif data.startswith('leave'):                                      
+    elif data.startswith('leave'):                                   
+        response = leave_group(username, "Public")    #added client socket so we could output a message if trying to leave public in the leave_group function - Trysten
+        client_socket.send(response.encode('utf-8'))
+    elif data.startswith('groupleave'):                                      
         _, *rest = data.split(' ', 1)
 
         if len(rest) < 1:
@@ -94,7 +107,10 @@ def process_client_data(client_socket, username, data):
         group = rest[0].strip()
         response = leave_group(username, group)    #added client socket so we could output a message if trying to leave public in the leave_group function - Trysten
         client_socket.send(response.encode('utf-8'))
-    elif data.startswith('join'):
+    elif data.startswith('join'):           
+        response = join_group(client_socket,username, "Public")
+        client_socket.send(response.encode('utf-8'))
+    elif data.startswith('groupjoin'):
         _, *rest = data.split(' ', 1)
 
         if len(rest) < 1:
@@ -109,14 +125,19 @@ def process_client_data(client_socket, username, data):
     elif data.startswith('help'):
         help_message = (
             "\nAvailable commands:\n"
-            "post <group> <message> - Post a message to the specified group.\n"
-            "users <group> - Display the list of users in the specified group.\n"
+            "post <group> <message> - Post a message to the public board.\n"
+            "users <group> - Display the list of users in the public.\n"
             "getmessage <message_id> - Get the content of the message with the specified ID.\n"
-            "leave <group> - Leave the specified group.\n"
-            "join <group> - Join the specified group.\n"
-            "grouplist - Display the list of available groups.\n"
+            "leave <group> - Leave the specified group.\n" # didnt change!!!!!!!!!
+            "join <group> - Join the specified group.\n"  # didnt change!!!!!!!!!
             "help - Gives a list of commands\n"
             "exit - Disconnects from the server and exits client program\n"
+            "grouplist - Display the list of available groups.\n"
+            "groupjoin <group> - Join the specified group.\n"
+            "grouppost - Join the specified group.\n"
+            "groupusers <group> - Display the list of users in the specified group.\n"
+            "groupleave <group> - Leave the specified group.\n"
+            "groupmessage <group> <message_id> - Get the content of the message with the specified ID and group.\n"
         )
         client_socket.send(help_message.encode('utf-8'))
     elif data.startswith('exit'):
