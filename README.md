@@ -41,13 +41,13 @@ The Chat Application is a simple yet powerful server-client communication system
 3. Enter your desired username.
 4. Use the following commands:
    - `post <message>`: Post a message to the public group.
-   - `grouppost <group> <message>`: Post a message to a specific group.
-   - `users <group>`: Display the list of users in a group.
+   - `users`: Display the list of users in the public group.
    - `getmessage <message_id>`: Get the content of a specific message.
    - `leave <group>`: Leave a group.
    - `join <group>`: Join a group.
    - `help`: Display a list of commands.
    - `exit`: Disconnect from the server and exit the client program.
+   - `grouppost <group> <message>`: Post a message to a specific group.
    - `grouplist`: Display the list of available groups.
    - `groupjoin <group>`: Join a specific group.
    - `grouppost <group>`: Post a message to a specific group.
