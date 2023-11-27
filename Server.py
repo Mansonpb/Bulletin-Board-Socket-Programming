@@ -147,36 +147,60 @@ def process_client_data(client_socket, username, data):
     else:
         client_socket.send("Invalid command. Type 'help' for a list of commands.".encode('utf-8'))
 
+
 # Function to post a message to the user's current group
-def post_message(client_socket,sender,group, message):
+def post_message(client_socket,sender,group_ID, message):
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
-    # Check if the group exists
-    if group not in groups:
-        client_socket.send(f"Invalid group '{group}'. Use 'grouplist' to see available groups.\n".encode('utf-8'))
-        return
-    # if 1 <= int(group) <= 5:      --trysten
-    #     group_id = int(group) + 1
-    #USE THIS IF THE GROUP is NOT in the groups list
 
-    # Check if the user is a member of the group
-    if sender not in groups[group]:
-        client_socket.send(f"You are not a member of {group}. Use 'join {group}' to join the group.\n".encode('utf-8'))
-        return
+    # Check if the group exists
+    if group_ID not in groups:
+        print(f"hello 1")
+        try:
+            if 1 <= int(group_ID) <= 5:
+                print(f"hello 2")
+                group = "Group" + group_ID
+                print(group)
+                print(f"hello 3")
+                # group = groups[str(group_ID)]
+                # Check if the user is a member of the group
+                if sender not in groups[group]:
+                    client_socket.send(f"You are not a member of {group}. Use 'join {group}' to join the group.\n".encode('utf-8'))
+                    return
+                    # Check if the message is empty
+                if not message.strip():
+                    client_socket.send("Message cannot be empty. Please try again.\n".encode('utf-8'))
+                    return
+                message_data = f"{len(messages) + 1}, {sender}, {timestamp}, <{group}> {message}"
+                messages.append(message_data)
+                last_two_messages[group] = [last_two_messages[group][1], message_data]
+                broadcast_message(client_socket,sender, group, message_data)
+                return
+        except ValueError:
+            client_socket.send(f"Invalid group '{group_ID}'. Use 'grouplist' to see available groups.\n".encode('utf-8'))    
+            return
+
     
+    # Check if the user is a member of the group
+    if sender not in groups[group_ID]:
+        client_socket.send(f"You are not a member of {group_ID}. Use 'join {group_ID}' to join the group.\n".encode('utf-8'))
+        return
+
     # Check if the message is empty
     if not message.strip():
         client_socket.send("Message cannot be empty. Please try again.\n".encode('utf-8'))
         return
+    
+    
 
-    message_data = f"{len(messages) + 1}, {sender}, {timestamp}, <{group}> {message}"
+    message_data = f"{len(messages) + 1}, {sender}, {timestamp}, <{group_ID}> {message}"
     messages.append(message_data)
 
 
     # Update last two messages for the group
-    last_two_messages[group] = [last_two_messages[group][1], message_data]
+    last_two_messages[group_ID] = [last_two_messages[group_ID][1], message_data]
 
-    broadcast_message(client_socket,sender, group, message_data)
+    broadcast_message(client_socket,sender, group_ID, message_data)
 
 # Function to find the group of a user
 def find_user_group(username):
@@ -260,11 +284,26 @@ def remove_user(username):
 
 # Function to display the list of users in a group
 def display_user_list(client_socket, group):
-    if group in groups:
-        user_list = ', '.join(groups[group])
-        client_socket.send(f"Users in {group}: {user_list}\n".encode('utf-8'))
+    if group not in groups:
+        try:
+            if 1 <= int(group) <= 5:
+                group = "Group" + group
+                if group in groups:
+                    user_list = ', '.join(groups[group])
+                    client_socket.send(f"Users in {group}: {user_list}\n".encode('utf-8'))
+                else:
+                    client_socket.send("Invalid group. Use command 'grouplist' to see available groups.".encode('utf-8'))
+            else:
+                client_socket.send("Invalid group. Use command 'grouplist' to see available groups.".encode('utf-8'))
+        except ValueError:
+            client_socket.send("Invalid group. Use command 'grouplist' to see available groups.".encode('utf-8'))
     else:
-        client_socket.send("Invalid group. Use command 'grouplist' to see available groups.".encode('utf-8'))
+        if group in groups:
+            user_list = ', '.join(groups[group])
+            client_socket.send(f"Users in {group}: {user_list}\n".encode('utf-8'))
+        else:
+            client_socket.send("Invalid group. Use command 'grouplist' to see available groups.".encode('utf-8'))
+
 
 # Function to get the content of a message
 def get_message(client_socket, message_id):
