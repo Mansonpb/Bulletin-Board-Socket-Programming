@@ -7,7 +7,7 @@
   - [Server](#server)
   - [Client](#client)
 - [Usability Instructions](#usability-instructions)
-- [Known Issues](#known-issues)
+- [Known Issues / Challenges](#known-issues--challenges)
 
 ## Description
 The Chat Application is a simple yet powerful server-client communication system developed in Python using socket programming. The project provides a real-time chat environment where users can join different groups, post messages, and discuss with other participants.
@@ -43,8 +43,8 @@ The Chat Application is a simple yet powerful server-client communication system
    - `post <message>`: Post a message to the public group.
    - `users`: Display the list of users in the public group.
    - `getmessage <message_id>`: Get the content of a specific message.
-   - `leave <group>`: Leave a group.
-   - `join <group>`: Join a group.
+   - `leave <group>`: Leave Public group.
+   - `join <group>`: Join Public group.
    - `help`: Display a list of commands.
    - `exit`: Disconnect from the server and exit the client program.
    - `grouppost <group> <message>`: Post a message to a specific group.
@@ -56,10 +56,14 @@ The Chat Application is a simple yet powerful server-client communication system
    - `groupmessage <group> <message_id>`: Get the content of a specific message in a specific group.
 
 ## Usability Instructions
-- When joining the server, the user is automatically added to the Public group.
+- When joining the server, the user is automatically added to a 'waiting room'.
 - The server will provide a welcome message with instructions.
+- The user can proceed to use the `join` command to enter the Public chatroom.  The user can also join other groups and post by following the command conventions listed above.
 - Type `help` for a list of available commands.
 
-## Known Issues
-
+## Known Issues / Challenges
+- **Terminal doesn't refresh after using `exit` command.**
+  - Exit command is functional as it disconnects the client from the server and exits the client program, however after executing the command, the terminal isn't quite "caught up".  A couple of lines have to be passed through the terminal before it resets/refreshes and lets you reconnect again.  We see this as a minor issue that could affect usability, yet it is beyond the scope of the assignment.
+- **Group ID**
+  - Creating the flexibility of our server program for accepting group names AND group IDs was a challenge that stumped our team for a while.  After some brainstorming, we devised a system that would concatenate the group ID with "group" IF the user chose to enter the group ID instead of the group name.  This system essentially allowed us to keep our code consistent by checking for specific group names while still allowing the user more input options.
 ## 
