@@ -8,6 +8,7 @@
   - [Client](#client)
 - [Usability Instructions](#usability-instructions)
 - [Known Issues / Challenges](#known-issues--challenges)
+- [Github Link](#github-link)
 
 ## Description
 The Chat Application is a simple yet powerful server-client communication system developed in Python using socket programming. The project provides a real-time chat environment where users can join different groups, post messages, and discuss with other participants.
@@ -66,4 +67,7 @@ The Chat Application is a simple yet powerful server-client communication system
   - Exit command is functional as it disconnects the client from the server and exits the client program, however after executing the command, the terminal isn't quite "caught up".  A couple of lines have to be passed through the terminal before it resets/refreshes and lets you reconnect again.  We see this as a minor issue that could affect usability, yet it is beyond the scope of the assignment.
 - **Group ID**
   - Creating the flexibility of our server program for accepting group names AND group IDs was a challenge that stumped our team for a while.  After some brainstorming, we devised a system that would concatenate the group ID with "group" IF the user chose to enter the group ID instead of the group name.  This system essentially allowed us to keep our code consistent by checking for specific group names while still allowing the user more input options.
+ 
+## Github Link
+- https://github.com/Mansonpb/Bulletin-Board-Socket-Programming
 ## 
